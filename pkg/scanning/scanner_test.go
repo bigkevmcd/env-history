@@ -21,3 +21,17 @@ func TestScanEnvironments(t *testing.T) {
 		t.Fatalf("failed to scan commits:\n%s", diff)
 	}
 }
+
+func TestScanEnvironmentsOnlyFetchesForEnvironments(t *testing.T) {
+	commits, err := Scan("../../../gitops-repo/", "go-demo/environments", []string{"production"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := map[string]string{
+		"production": "042e7239324d8c11afaf188c27ad17d7c471b770",
+	}
+	if diff := cmp.Diff(want, commits); diff != "" {
+		t.Fatalf("failed to scan commits:\n%s", diff)
+	}
+}

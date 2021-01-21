@@ -3,11 +3,11 @@ package scanning
 import (
 	"fmt"
 	"io"
-	"log"
 	"strings"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/go-git/go-git/v5/utils/merkletrie"
 )
 
@@ -27,9 +27,6 @@ func Scan(p, base string, environments []string) (map[string]string, error) {
 	envCommits := map[string]string{}
 	err = commitIter.ForEach(func(c *object.Commit) error {
 		hash := c.Hash.String()
-		line := strings.Split(c.Message, "\n")
-		log.Println(hash[:7], line[0])
-
 		currentDirState, err := c.Tree()
 		if err != nil {
 			return fmt.Errorf("failed to get tree for commit %s: %w", hash[:7], err)
@@ -37,17 +34,26 @@ func Scan(p, base string, environments []string) (map[string]string, error) {
 
 		prevCommitObject, err := c.Parents().Next()
 		if err != nil {
-			if err == io.EOF {
-				return currentDirState.Files().ForEach(func(f *object.File) error {
-					log.Printf("KEVIN!!!! %s\n", f.Name)
-					return nil
-				})
+			if err != io.EOF {
+				return fmt.Errorf("failed to get the next parent for commit %s: %w", hash[:7], err)
 			}
-			return fmt.Errorf("failed to get the next parent for commit %s: %w", hash[:7], err)
+			files := currentDirState.Files()
+			defer files.Close()
+
+			files.ForEach(func(f *object.File) error {
+				env := envName(f.Name, base)
+				if env != "" && hasString(environments, env) {
+					if _, ok := envCommits[env]; !ok {
+						envCommits[env] = hash
+					}
+				}
+				return nil
+			})
+			return nil
 		}
 
+		// TODO: what does this really mean?
 		if prevCommitObject == nil {
-			log.Println("  has no previous commit")
 			return nil
 		}
 		prevDirState, err := prevCommitObject.Tree()
@@ -68,25 +74,48 @@ func Scan(p, base string, environments []string) (map[string]string, error) {
 				if ch.From != emptyChange {
 					filename = ch.From.Name
 				}
-				log.Printf("KEVIN!!!! %s\n", filename)
+				env := envName(filename, base)
+				if env != "" && hasString(environments, env) {
+					if _, ok := envCommits[env]; !ok {
+						envCommits[env] = hash
+					}
+				}
 			}
 		}
 
-		// fileIter, err := c.Files()
-		// if err != nil {
-		// 	return err
-		// }
-		// defer fileIter.Close()
-
-		// return fileIter.ForEach(func(f *object.File) error {
-		// 	log.Printf("file %q\n", f.Name)
-		// 	return nil
-		// })
-
+		if len(envCommits) == len(environments) {
+			return storer.ErrStop
+		}
 		return nil
 	})
-	if err != nil {
+	if err != nil && err != io.EOF {
 		return nil, fmt.Errorf("failed to scan commits: %w", err)
 	}
 	return envCommits, nil
+}
+
+func removeEmpty(s []string) []string {
+	r := []string{}
+	for _, v := range s {
+		if v != "" {
+			r = append(r, v)
+		}
+	}
+	return r
+}
+
+func hasString(s []string, v string) bool {
+	for _, c := range s {
+		if c == v {
+			return true
+		}
+	}
+	return false
+}
+
+func envName(filename, base string) string {
+	if strings.HasPrefix(filename, base) {
+		return removeEmpty(strings.Split(strings.TrimPrefix(filename, base), "/"))[0]
+	}
+	return ""
 }
