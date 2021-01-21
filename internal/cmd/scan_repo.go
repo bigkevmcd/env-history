@@ -9,10 +9,11 @@ import (
 
 func makeScanRepoCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "scan-repo --repo-path",
+		Use:   "scan-repo",
 		Short: "scan-repo",
 		Run: func(cmd *cobra.Command, args []string) {
-			scanning.Scan(viper.GetString("repo-path"))
+			// TODO: accept list of strings for environments.
+			scanning.Scan(viper.GetString("repo-path"), viper.GetString("config-root"), []string{})
 		},
 	}
 	cmd.Flags().String(
