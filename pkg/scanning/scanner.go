@@ -13,14 +13,10 @@ import (
 
 var emptyChange object.ChangeEntry
 
-func Scan(p, base string, environments []string) (map[string]string, error) {
-	r, err := git.PlainOpen(p)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open the repository in %q: %w", p, err)
-	}
+func Scan(r *git.Repository, base string, environments []string) (map[string]string, error) {
 	commitIter, err := r.CommitObjects()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get the commit objects from repository in %q: %w", p, err)
+		return nil, fmt.Errorf("failed to get the commit objects from repository in %v: %w", r, err)
 	}
 	defer commitIter.Close()
 

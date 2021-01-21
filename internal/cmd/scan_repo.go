@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/bigkevmcd/env-history/pkg/scanning"
+	"github.com/go-git/go-git/v5"
 )
 
 func makeScanRepoCmd() *cobra.Command {
@@ -15,8 +16,13 @@ func makeScanRepoCmd() *cobra.Command {
 		Short: "scan-repo",
 		Run: func(cmd *cobra.Command, args []string) {
 			// TODO: accept list of strings for environments.
+
+			r, err := git.PlainOpen(viper.GetString("repo-path"))
+			if err != nil {
+				log.Fatalf("failed to open the repository in %q: %s", viper.GetString("repo-path"), err)
+			}
 			result, err := scanning.Scan(
-				viper.GetString("repo-path"),
+				r,
 				viper.GetString("config-root"),
 				viper.GetStringSlice("environments"))
 			if err != nil {
