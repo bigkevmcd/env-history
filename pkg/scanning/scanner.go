@@ -14,6 +14,11 @@ import (
 
 var emptyChange object.ChangeEntry
 
+// Scan detects the most recent commit for a change in an environments files.
+//
+// Scan accepts a list of environments and a base along with a cloned
+// Repository, and scans back through the history looking for changes in
+// commits until it's found the most recent commit for each environment.
 func Scan(r *git.Repository, base string, environments []string) (map[string]string, error) {
 	commitIter, err := r.CommitObjects()
 	if err != nil {
@@ -91,6 +96,12 @@ func Scan(r *git.Repository, base string, environments []string) (map[string]str
 	return envCommits, nil
 }
 
+// ChangedEnvironments detects environments that have changed in a specific
+// hash, rooted at the base parameter, it returns a list of the environment
+// names that were detected as changed.
+//
+// e.g. my-app as a base would detect changes in "my-app/dev" and
+// "my-app/staging" and return "dev" and "staging" as the changed environments.
 func ChangedEnvironments(r *git.Repository, base string, h plumbing.Hash) ([]string, error) {
 	foundEnvs := map[string]bool{}
 	commit, err := r.CommitObject(h)
