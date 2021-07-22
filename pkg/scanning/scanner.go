@@ -12,8 +12,6 @@ import (
 	"github.com/go-git/go-git/v5/utils/merkletrie"
 )
 
-var emptyChange object.ChangeEntry
-
 // Scan detects the most recent commit for a change in an environments files.
 //
 // Scan accepts a list of environments and a base along with a cloned
@@ -73,7 +71,7 @@ func Scan(r *git.Repository, base string, environments []string) (map[string]str
 			}
 			if action == merkletrie.Modify {
 				filename := ch.To.Name
-				if ch.From != emptyChange {
+				if isEmpty(ch.From) {
 					filename = ch.From.Name
 				}
 				env := envName(filename, base)
@@ -149,7 +147,7 @@ func ChangedEnvironments(r *git.Repository, base string, h plumbing.Hash) ([]str
 		}
 		if action == merkletrie.Modify {
 			filename := ch.To.Name
-			if ch.From != emptyChange {
+			if isEmpty(ch.From) {
 				filename = ch.From.Name
 			}
 			env := envName(filename, base)
@@ -190,4 +188,8 @@ func envName(filename, base string) string {
 		return removeEmpty(strings.Split(strings.TrimPrefix(filename, base), "/"))[0]
 	}
 	return ""
+}
+
+func isEmpty(o object.ChangeEntry) bool {
+	return object.ChangeEntry{} == o
 }
