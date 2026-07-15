@@ -12,6 +12,8 @@ require (
 
 replace golang.org/x/crypto => golang.org/x/crypto v0.52.0
 
+replace golang.org/x/net => golang.org/x/net v0.55.0
+
 require (
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
